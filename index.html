@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#10140d" />
+  <meta name="description" content="Iron Siege — a fast top-down tank arena shooter. Outmaneuver and destroy waves of hostile AI tanks." />
+  <title>IRON SIEGE — Tank Arena</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2310140d'/%3E%3Cpath d='M10 42h44v10H10zM16 30h32v9H16zM28 20h9v10h-9zM37 24h14v4H37z' fill='%23ffb45e'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <canvas id="game" aria-label="Iron Siege tank arena"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+  <div id="damage" aria-hidden="true"></div>
+
+  <div id="hud" class="hud">
+    <div class="hud-top">
+      <div class="hud-side left">
+        <div class="brand">IRON <span>SIEGE</span></div>
+        <div class="score-row">
+          <span class="score-label">SCORE</span>
+          <strong id="score">0</strong>
+          <span class="best">BEST <b id="best">0</b></span>
+        </div>
+      </div>
+
+      <div class="hud-side center">
+        <div class="wave-card">
+          <div class="wave-label">WAVE <strong id="waveNum">01</strong></div>
+          <div class="hostiles"><i class="hostile-dot"></i><b id="enemyCount">0</b> HOSTILES</div>
+        </div>
+      </div>
+
+      <div class="hud-side right">
+        <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause game" title="Pause">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor"/>
+            <rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor"/>
+          </svg>
+        </button>
+        <button id="muteBtn" class="icon-btn" type="button" aria-label="Mute audio" title="Mute audio">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
+            <path class="sound-wave" d="M16 8.2a5 5 0 0 1 0 7.6M18.6 5.4a9 9 0 0 1 0 13.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path class="sound-slash" d="M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="radar-wrap">
+          <div class="radar-head"><span>RADAR</span><i></i></div>
+          <canvas id="minimap" width="304" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="armor-block">
+        <div class="armor-head">
+          <span>ARMOR INTEGRITY</span>
+          <b id="armorVal">100</b>
+        </div>
+        <div class="armor-bar">
+          <i id="armorFill" class="armor-fill"></i>
+          <i id="shieldFill" class="shield-fill"></i>
+          <span class="armor-ticks"></span>
+        </div>
+        <div id="buffs" class="buffs">
+          <span data-buff="shield" class="buff shield">SHIELD <b>0</b></span>
+          <span data-buff="rapid" class="buff rapid">OVERDRIVE <b>0.0</b></span>
+        </div>
+      </div>
+
+      <div class="weapon-block">
+        <div class="weapon-head"><span>MAIN GUN</span><b id="weaponState">READY</b></div>
+        <div class="weapon-bar"><i id="reloadFill"></i></div>
+        <div class="weapon-hint">WASD MOVE &nbsp;·&nbsp; MOUSE AIM &nbsp;·&nbsp; CLICK FIRE &nbsp;·&nbsp; P PAUSE</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="feed" class="feed" aria-live="polite"></div>
+
+  <div id="banner" class="banner">
+    <span id="bannerKicker">INCOMING</span>
+    <strong id="bannerTitle">WAVE 01</strong>
+    <small id="bannerSub">3 HOSTILES</small>
+  </div>
+
+  <div id="intro" class="overlay intro">
+    <div class="panel intro-panel">
+      <div class="eyebrow"><i></i> ARMORED SURVIVAL <span>//</span> SECTOR 07</div>
+      <h1 class="title"><span>IRON</span><em>SIEGE</em></h1>
+      <p class="tagline">You are the last operational tank. <b>Kill every hostile.</b> Stay mobile, use cover, and survive the waves.</p>
+
+      <div class="controls desktop-controls">
+        <div class="control"><span class="key">W A S D</span><em>MOVE</em></div>
+        <div class="control"><span class="key">MOUSE</span><em>AIM</em></div>
+        <div class="control"><span class="key">CLICK / SPACE</span><em>FIRE</em></div>
+      </div>
+      <div class="touch-controls">
+        <span><i class="stick-icon left"></i>LEFT STICK <b>MOVE</b></span>
+        <span><i class="stick-icon right"></i>RIGHT STICK <b>AIM + FIRE</b></span>
+      </div>
+
+      <div class="intro-actions">
+        <button id="playBtn" class="btn primary" type="button">PLAY</button>
+        <div class="best-line">BEST SCORE <b id="introBest">0</b></div>
+      </div>
+      <div class="intro-foot">HOSTILE ARMOR: SCOUT / GUNNER / HEAVY &nbsp;·&nbsp; FIELD REPAIRS AND OVERDRIVE CORES DROP IN COMBAT</div>
+    </div>
+  </div>
+
+  <div id="pause" class="overlay compact hidden">
+    <div class="panel small-panel">
+      <div class="eyebrow"><i></i> SIMULATION HALTED</div>
+      <h2 class="overlay-title">PAUSED</h2>
+      <p class="overlay-copy">The battlefield waits. Catch your breath, commander.</p>
+      <button id="resumeBtn" class="btn primary" type="button">RESUME</button>
+    </div>
+  </div>
+
+  <div id="gameover" class="overlay compact hidden">
+    <div class="panel small-panel">
+      <div class="eyebrow danger"><i></i> SIGNAL LOST</div>
+      <h2 class="overlay-title danger">TANK<br />DESTROYED</h2>
+      <div class="result-grid">
+        <div><span>WAVE REACHED</span><b id="goWave">1</b></div>
+        <div><span>TANKS DESTROYED</span><b id="goKills">0</b></div>
+        <div><span>FINAL SCORE</span><b id="goScore">0</b></div>
+        <div><span>BEST SCORE</span><b id="goBest">0</b></div>
+      </div>
+      <button id="againBtn" class="btn primary" type="button">PLAY AGAIN</button>
+      <div class="restart-hint">PRESS <b>R</b> TO REDEPLOY</div>
+    </div>
+  </div>
+
+  <script src="game.js" type="module"></script>
+</body>
+</html>
